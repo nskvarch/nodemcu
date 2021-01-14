@@ -2,6 +2,10 @@ try:
     import usocket as socket
 except:
     import socket
+import machine
+import ntptime, utime
+from machine import RTC
+from time import sleep
 
 response_404 = """HTTP/1.0 404 NOT FOUND
 
@@ -18,10 +22,6 @@ response_template = """HTTP/1.0 200 OK
 %s
 """
 
-import machine
-import ntptime, utime
-from machine import RTC
-from time import sleep
 
 try:
     seconds = ntptime.time()
@@ -30,6 +30,10 @@ except:
 
 rtc = RTC()
 rtc.datetime(utime.localtime(seconds))
+pin = machine.Pin(5, machine.Pin.OUT)
+switch_pin = machine.Pin(4, machine.Pin.IN)
+adc = machine.ADC(0)
+
 
 def time():
     body = """<html>
@@ -42,17 +46,44 @@ def time():
 
     return response_template % body
 
+
 def dummy():
     body = "This is a dummy endpoint"
 
     return response_template % body
 
-pin = machine.Pin(10, machine.Pin.IN)
+
+def light_on():
+    pin.value(1)
+    body = "You turned a light on!"
+    return response_template % body
+
+
+def light_off():
+    pin.value(0)
+    body = "You turned a light off!"
+    return response_template % body
+
+
+def switch():
+    body = "Switch state: {}".format(switch_pin.value())
+    return response_template % body
+
+
+def light():
+    body = "Light value: {}".format(adc.read())
+    return response_template % body
+
 
 handlers = {
     'time': time,
     'dummy': dummy,
+    'light_on': light_on,
+    'light_off': light_off,
+    'switch': switch,
+    'light': light,
 }
+
 
 def main():
     s = socket.socket()
@@ -87,5 +118,6 @@ def main():
 
         client_s.close()
         print()
+
 
 main()
